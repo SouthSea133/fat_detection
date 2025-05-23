@@ -23,16 +23,16 @@ totalTasks = length(num_movmean_list);
 %% Run Monte Carlo
 % numMc = length(f_list);
 for i = 1:totalTasks
-    params.fs = 1000e3; % Tần số lấy mẫu 1 MHz
+    params.fs = 1000e3; % Tần số lấy mẫu 2 MHz
     params.flow = 40e3; % Tần số cắt thấp 40 kHz
     params.fhigh = 60e3; % Tần số cắt cao 60 kHz
     params.N_interp = 1000; % Số mẫu nội suy mong muốn
-    params.interp_type = 'v5cubic';
-    params.filter_order = 5;
-    params.sub_min_thresh = 20/1e6;%20us
-    params.num_movmean    = num_movmean_list(i);
+    params.interp_type = 'spline';
+    params.filter_order = filter_order_list(i);
+    params.sub_min_thresh = 20/1e6;%us 
+    params.fat_time_thresh = 30/1e6;%us
     % Algorithm
-    [fat_time, rec] = process_fat_detect(raw_signal, params);
+    [fat_time, rec] = process_aic(raw_signal, params);
     std_fat_time = std(fat_time(2000:end))*1e6;
 
     % Output

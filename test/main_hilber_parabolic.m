@@ -1,29 +1,26 @@
 clc;clear all;close all;
 set(0, "DefaultFigureWindowStyle", "docked");
 %% Input
-raw_name = dir('./log/export_raw.csv');
+raw_name = dir('./log/export_raw_2.csv');
 raw_signal = readtable([raw_name.folder '\' raw_name.name]);
+
 %% Parameters
-params.fs = 1000e3; % Tần số lấy mẫu 2 MHz
-params.flow = 40e3; % Tần số cắt thấp 40 kHz
-params.fhigh = 60e3; % Tần số cắt cao 60 kHz
-params.N_interp = 1000; % Số mẫu nội suy mong muốn
-params.interp_type = 'spline';% Phương pháp nội suy
-params.filter_order = 5 ;% Số bậc của bộ lọc thông dải
-params.sub_min_thresh = 20/1e6;%us % Tham số thể hiện độ tin cậy của fat so với kết quả của AIC, số càng lớn thì càng ko tin vào AIC nhiều.
-params.fat_time_thresh = 30/1e6;%us % Tham số thể hiện độ mức độ biến đổi fat hệ thống, số càng lớn thì hệ thống ước lượng FAT có quán tính càng lớn, càng ì ạch, không dễ thay đổi.
+% Estimate noise level and set dynamic threshold
+noise_region = envelope(1:idx_start-10); % Lấy vùng trước sóng để ước lượng nhiễu
+noise_mean = mean(noise_region);
+noise_std = std(noise_region);
+params.threshold = noise_mean + 3*noise_std; % Ngưỡng = trung bình nhiễu + 3 độ lệch chuẩn
 %% Algorithm
-[fat_time, rec] = process_aic(raw_signal, params);
+[fat_time, rec] = core_hilber_parabolic(raw_signal, params);
 %% Plot
 clc;close all;
-raw_data_size = size(raw_signal);
-% data_plot_list = 1:raw_data_size(1);
 % data_plot_list = [3, 50, 100, 400, 600, 1000, 1500, 2000, 3000, 4000];
-data_plot_list = 2000:2022;
+data_plot_list = 230:260;
 % data_plot_list = 9960:9980;
 
 t = linspace(1e-3/params.N_interp,1e-3,params.N_interp);% 1 ms tín hiệu
 interp_data_size = params.N_interp;
+raw_data_size = size(raw_signal);
 fs = params.fs;
 for num_data = data_plot_list
     % data_ = signal(num_data,:)';
@@ -50,12 +47,6 @@ for num_data = data_plot_list
     legend(h, {'Minimum AIC'});
     fprintf('FAT number %d: %.1f us\n',num_data, minAICTime_);
     linkaxes(ax, 'x');
-
-    pause(0.05);
-
-    if (rem(num_data, 300) == 0)
-        close all;
-    end
 end
 
     figure('Name',"FAT detection summary");
@@ -65,5 +56,4 @@ end
     ylabel('FAT time (us)');
     title('FAT detection summary ');
 
-    % fprintf('FAT Std: %.4f us\n',std(fat_time(230:1660))*1e6);
-    fprintf('FAT Std: %.4f us\n',std(fat_time(2000:end))*1e6);
+    fprintf('FAT Std: %.4f us\n',std(fat_time(230:1660))*1e6);
