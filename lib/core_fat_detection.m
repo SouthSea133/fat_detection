@@ -1,4 +1,4 @@
-function [fat_time, filtered_signal, AIC] = core_fat_detection(signal, fs, flow, fhigh, IgnoreRingDown)
+function [fat_time, rec] = core_fat_detection(signal, params)
     % DETECT_FIRST_ARRIVAL Xác định thời gian đến đầu tiên từ tín hiệu sóng S siêu âm
     % Input:
     %   - signal: Tín hiệu đầu vào
@@ -10,23 +10,41 @@ function [fat_time, filtered_signal, AIC] = core_fat_detection(signal, fs, flow,
     %   - filtered_signal: Tín hiệu sau khi lọc
     %   - AIC: Toán tử ước lượng được
 
-    if (nargin <= 4)
-        IgnoreRingDown = true;
-    end
+    %% Input
+    fs = params.fs;
+    flow           = params.flow; 
+    fhigh          = params.fhigh; 
+    N_interp       = params.N_interp; 
+    interp_type    = params.interp_type; 
+    filter_order   = params.filter_order;
+    sub_min_thresh = params.sub_min_thresh;
+    num_movmean    = params.num_movmean;
 
     % 1. Trend removal (remove DC)
     signal = detrend(signal);
-    
-    % 2. Pass band Butterworth filter
-    [b, a] = butter(4, [flow fhigh]/(fs/2), 'bandpass');
-    
-    % 3. Apply Filter
-    filtered_signal = filtfilt(b, a, signal);
 
-    % 4. Choose the signal process
+    signal = movmean(signal, num_movmean);
+
+    % 2. Interpolate to increase sample
+    t_before = linspace(1e-3/size(signal,2),1e-3,size(signal,2));% 1 ms tín hiệu
+    t_after = linspace(1e-3/N_interp,1e-3,N_interp);% 1 ms tín hiệu
+    signal_interp = interp1(t_before, signal, t_after, interp_type);
+    % figure();plot(t_before',signal','o',t_after',signal_interp',':.');
+
+    % 3. Pass band Butterworth filter
+    [b, a] = butter(filter_order, [flow fhigh]/(fs/2), 'bandpass');
+    
+    if any(~isfinite(signal_interp))
+        % warning('Tín hiệu chứa Inf/NaN. Đang thay thế...');
+        signal_interp = fillmissing(signal_interp, 'constant', 0); % Thay thế bằng 0
+    end
+    % 4. Apply Filter
+    filtered_signal = filtfilt(b, a, signal_interp);
+
+    % 5. Choose the signal process
     signal_process = filtered_signal;
 
-    % 5. Calculate the AIC
+    % 6. Calculate the AIC
     AIC = inf(size(signal_process));
     Nt = size(signal_process, 2);
     for k = 2:(Nt - 1)
@@ -38,16 +56,40 @@ function [fat_time, filtered_signal, AIC] = core_fat_detection(signal, fs, flow,
                             );
     end
 
-    % 6. Setting the stop index to ignore the ring down
-    if IgnoreRingDown
+    % 7. Setting the stop index to ignore the ring down
+    % if IgnoreRingDown
         for sdx = 1:size(signal_process, 1)
             [~, i_stop] = max( abs( signal_process(sdx,:) ) );
             AIC(sdx,i_stop+1:end) = NaN;
         end
-    end
+    % end
 
-    % 7. Get signal arrival from minimum AIC, constrained to be less than i_stop
+    % 8. Get signal arrival from minimum AIC, constrained to be less than i_stop
+    % figure();
+    % ax(1) = subplot(211);plot(AIC');
+
+    AIC = movmean(AIC, num_movmean);
     AIC(AIC == -inf) = nan;
     [~, minAICIndex] = min(AIC, [], 2, 'omitnan');
-    fat_time = minAICIndex * 1/fs;
+    
+    % xline(minAICIndex);
+    % 9. Post process AIC
+    min_locs = find(islocalmin(AIC)); % Tìm vị trí của các điểm cực trị địa phương
+    sub_idx_min = minAICIndex - min_locs; % Hiệu giữa điểm cực tiểu với các điểm cực trị địa phương
+    sub_idx_thresh = sub_min_thresh*fs;
+    true_min = find((sub_idx_min > 0) & (sub_idx_min < sub_idx_thresh)); % > 0 nghĩa là đứng trước điểm cực tiểu, < 20 nghĩa là không cách xa điểm cực tiểu 20us
+    sub_idx = 0;
+    if (true_min)
+        minAICIndex = min_locs(true_min(1));
+        sub_idx = true_min(1);
+    end
+
+    fat_time = minAICIndex(1) * 1/fs;
+
+    rec.filtered_signal = filtered_signal;
+    rec.AIC = AIC;
+    rec.sub_idx = sub_idx;
+
+    % ax(2) = subplot(212);plot(AIC');xline(minAICIndex);
+    % linkaxes(ax,'x');
 end
