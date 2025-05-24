@@ -1,7 +1,7 @@
 clc;clear all;close all;
 set(0, "DefaultFigureWindowStyle", "docked");
 %% Input
-raw_name = dir('./log/export_raw.csv');
+raw_name = dir('./log/export_raw_2.csv');
 raw_signal = readtable([raw_name.folder '\' raw_name.name]);
 %% Parameters
 filter_order_list = 1:10;
@@ -59,7 +59,8 @@ function result = doMonte(raw_signal, mc_input)
     params.fat_time_thresh = 30/1e6;%us
     % Algorithm
     [fat_time, ~] = process_aic(raw_signal, params);
-    std_fat_time = std(fat_time(2000:end))*1e6;
+    % std_fat_time = std(fat_time(2000:end))*1e6;
+    std_fat_time = std(fat_time(5000:9000))*1e6;
 
     % Output
     result.mc_input = params;
