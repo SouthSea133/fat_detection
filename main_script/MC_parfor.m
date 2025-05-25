@@ -32,7 +32,7 @@ for i = 1:totalTasks
     params.sub_min_thresh = 20/1e6;%us 
     params.fat_time_thresh = 30/1e6;%us
     % Algorithm
-    [fat_time, rec] = process_aic(raw_signal, params);
+    [fat_time, rec] = process_fat_detection(raw_signal, params);
     std_fat_time = std(fat_time(2000:end))*1e6;
 
     % Output

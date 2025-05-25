@@ -83,7 +83,7 @@ data  = noise + data;
 % [~, minAICIndex] = min(AIC, [], 2, 'omitnan');
 
 
-[AIC, minAICIndex] = core_aic(data);
+[AIC, minAICIndex] = core_fat_dectection(data);
 
 % plot
 if options.Plot

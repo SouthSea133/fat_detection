@@ -8,7 +8,7 @@ raw_size = size(raw);
 for i = 1:raw_size(1)
     value = rows2vars(raw(i,:));
     data = value.Var1';
-    [AIC, minAICIndex] = core_aic(data);
+    [AIC, minAICIndex] = core_fat_dectection(data);
     
 
     if (AIC(200) ~= inf)

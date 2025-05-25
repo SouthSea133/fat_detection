@@ -1,32 +1,18 @@
-clc;clear all;close all;
-set(0, "DefaultFigureWindowStyle", "docked");
-%% Input
-raw = readtable("export_raw.csv");
+close all;
+AIC_energy = zeros(raw_data_size(1), params.N_interp);
+minAICIndex_energy = zeros(raw_data_size(1),1);
 
-raw_size = size(raw);
-
-for i = 1:raw_size(1)
-    value = rows2vars(raw(i,:));
-    data = value.Var1';
-    [AIC, minAICIndex] = core_aic(data);
+AIC_envelop = zeros(raw_data_size(1), params.N_interp);
+minAICIndex_envelope = zeros(raw_data_size(1),1);
+figure();
+for i = 1:raw_data_size(1)
+    % num = 1;
+    data = rec.filtered_signal(i,:);
     
+    % plot(rec.tkeo_energy(i,:));hold on;
 
-    if (AIC(200) ~= inf)
-        figure;
-        subplot(2, 1, 1);
-        plot(data', 'r', 'linewidth', 1.5);
-        xline(minAICIndex);
-        title('Signal');
-        xlim([-Inf, length(data)]);
-        xlabel('Sample Index');
-    
-        subplot(2, 1, 2);
-        hold on;
-        plot(AIC', 'k-', 'linewidth', 1.5);
-        h = xline(minAICIndex, 'k--');
-        title('AIC');
-        xlim([-Inf, length(data)]);
-        xlabel('Sample Index');
-        legend(h, {'Minimum AIC'});
-    end
+    [AIC_energy(i,:), minAICIndex_energy(i)] = core_aic(rec.tkeo_energy(i,:));
+    [AIC_envelope(i,:), minAICIndex_envelope(i)] = core_aic(rec.envelope(i,:));
 end
+
+%%

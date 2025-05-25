@@ -18,7 +18,7 @@ for i = 1:data_size(1)
     value = rows2vars(raw_signal(i,:));
     signal(i,:) = value.Var1';
 
-    [fat_time(i), rec_] = core_aic(...
+    [fat_time(i), rec_] = core_fat_dectection(...
     signal(i,:), params);
     rec.filtered_signal(i,:) = rec_.filtered_signal;
     rec.AIC(i,:) = rec_.AIC;

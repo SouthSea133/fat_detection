@@ -25,7 +25,7 @@ for i = 1:raw_size(1)
     signal(i,:), fs, flow, fhigh, manual_window);
 
     % [AIC(i,:), minAICIndex(i)] = core_aic(signal(i,:), true);
-    [AIC(i,:), minAICIndex(i)] = core_aic(filtered_signal(i,:), true);
+    [AIC(i,:), minAICIndex(i)] = core_fat_dectection(filtered_signal(i,:), true);
 end
 
 result = table();
