@@ -1,8 +1,9 @@
 clc;clear all;close all;
 set(0, "DefaultFigureWindowStyle", "docked");
 %% Input
-raw_name = dir('./log/export_raw.csv');
+raw_name = dir('./log/DataSection_Section_1-3_2025.06.04_22.56.47.csv');
 raw_signal = readtable([raw_name.folder '\' raw_name.name]);
+raw_signal(:,1:3) = [];
 %% Parameters
 params.fs = 1000e3; % Tần số lấy mẫu 2 MHz
 params.flow = 40e3; % Tần số cắt thấp 40 kHz
@@ -10,7 +11,7 @@ params.fhigh = 60e3; % Tần số cắt cao 60 kHz
 params.N_interp = 1000; % Số mẫu nội suy mong muốn
 params.interp_type = 'spline';% Phương pháp nội suy
 params.filter_order = 5;% Số bậc của bộ lọc thông dải
-params.sub_min_thresh = 20/1e6;%us % Tham số thể hiện độ tin cậy của fat so với kết quả của AIC, số càng lớn thì càng ko tin vào AIC nhiều.
+params.sub_min_thresh = 10/1e6;%us % Tham số thể hiện độ tin cậy của fat so với kết quả của AIC, số càng lớn thì càng ko tin vào AIC nhiều.
 params.fat_time_thresh = 30/1e6;%us % Tham số thể hiện độ mức độ biến đổi fat hệ thống, số càng lớn thì hệ thống ước lượng FAT có quán tính càng lớn, càng ì ạch, không dễ thay đổi.
 %% Algorithm
 [fat_time, rec] = process_fat_detection(raw_signal, params);
@@ -19,7 +20,7 @@ clc;close all;
 raw_data_size = size(raw_signal);
 % data_plot_list = 1:raw_data_size(1);
 % data_plot_list = [3, 50, 100, 400, 600, 1000, 1500, 2000, 3000, 4000];
-data_plot_list = 2000:2022;
+data_plot_list = 460:480;
 % data_plot_list = 9960:9980;
 
 t = linspace(1e-3/params.N_interp,1e-3,params.N_interp);% 1 ms tín hiệu
@@ -66,4 +67,5 @@ end
     title('FAT detection summary ');
 
     % fprintf('FAT Std: %.4f us\n',std(fat_time(5000:9000))*1e6);
-    fprintf('FAT Std: %.4f us\n',std(fat_time(2000:end))*1e6);
+    % fprintf('FAT Std: %.4f us\n',std(fat_time(2000:end))*1e6);
+    fprintf('FAT Std: %.4f us\n',std(fat_time)*1e6);

@@ -10,6 +10,8 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
     %   - filtered_signal: Tín hiệu sau khi lọc
     %   - AIC: Toán tử ước lượng được
 
+    %% Persistent value
+    persistent tkeo_thresh
     %% Input
     fs = params.fs;
     flow           = params.flow; 
@@ -44,46 +46,52 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
     % 6. Choose the signal process
     signal_process = filtered_signal;
 
-
+    % TKEO energy
     energy = core_tkeo(signal_process);
 
+    
+    % Hilber and envelop
     signal_h = hilbert(signal_process);
     rec.envelope = abs(signal_h);
 
+    % signal_process = energy';
+
     % 7. Calculate the AIC
-    AIC = inf(size(signal_process));
-    Nt = size(signal_process, 2);
-    for k = 2:(Nt - 1)
-        AIC(:, k) = k .* log(...
-                              var(signal_process(:, 1:k), 0, 2) ...
-                            ) + ...
-         (Nt - k - 1) .* log(...
-                              var(signal_process(:, k + 1:end), 0, 2) ...
-                            );
+    [AIC, minAICIndex] = core_aic(signal_process);
+
+% 
+    if (isempty(tkeo_thresh))
+        tkeo_thresh = energy(minAICIndex);
+    elseif (abs(minAICIndex*1/fs - fat_time_) < fat_time_thresh)
+        tkeo_thresh = energy(minAICIndex);
     end
 
-    % 8. Setting the stop index to ignore the ring down
-    for sdx = 1:size(signal_process, 1)
-        [~, i_stop] = max( abs( signal_process(sdx,:) ) );
-        AIC(sdx,i_stop+1:end) = NaN;
+    window_length = 200;
+    if (minAICIndex > window_length)
+        tmp = find(energy(minAICIndex-window_length:minAICIndex+window_length) >= tkeo_thresh, 1, "first");
+        if (~isempty(tmp))
+            TKEO_index = minAICIndex - window_length + tmp;
+        else
+            TKEO_index = minAICIndex;
+        end
+    else
+        TKEO_index = minAICIndex;
     end
-
-    % 9. Get signal arrival from minimum AIC, constrained to be less than i_stop
-    AIC(AIC == -inf) = nan;
-    [~, minAICIndex] = min(AIC, [], 2, 'omitnan');
     
     % 10. Post process AIC
-    min_locs = find(islocalmin(AIC)); % Tìm vị trí của các điểm cực trị địa phương
-    sub_idx_min = minAICIndex - min_locs; % Hiệu giữa điểm cực tiểu với các điểm cực trị địa phương
-    sub_idx_thresh = sub_min_thresh*fs;
-    true_min = find((sub_idx_min > 0) & (sub_idx_min < sub_idx_thresh)); % > 0 nghĩa là đứng trước điểm cực tiểu, < sub_idx_thresh nghĩa là không cách xa điểm cực tiểu sub_idx_thresh*dt (us)
-    sub_idx = 0;
-    if (true_min)
-        minAICIndex = min_locs(true_min(1));
-        sub_idx = true_min(1);
+    min_locs_AIC = find(islocalmin(AIC)); % Tìm vị trí của các điểm cực trị địa phương
+    rec.sub_idx_max = TKEO_index;
+    [~, sub_idx_min] = min(abs(min_locs_AIC - TKEO_index)); % Hiệu giữa điểm TKEO với các điểm cực trị địa phương
+    idx_local_min = min_locs_AIC(sub_idx_min);
+    if (abs(idx_local_min - minAICIndex) < sub_min_thresh*fs)
+        true_min = idx_local_min;
+    else
+        true_min = minAICIndex;
     end
 
-    fat_time = minAICIndex(1) * 1/fs;
+    true_min = TKEO_index;
+
+    fat_time = true_min * 1/fs;
 
     if(abs(fat_time - fat_time_) < fat_time_thresh)
         fat_time = fat_time_;
@@ -91,6 +99,6 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
 
     rec.filtered_signal = filtered_signal;
     rec.AIC = AIC;
-    rec.sub_idx = sub_idx;
+    rec.sub_idx = sub_idx_min;
     rec.tkeo_energy = energy';
 end
