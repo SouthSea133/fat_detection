@@ -1,7 +1,7 @@
 clc;clear all;close all;
 set(0, "DefaultFigureWindowStyle", "docked");
 %% Input
-raw_name = dir('./log/DataSection_Section_1-3_2025.06.04_22.56.47.csv');
+raw_name = dir('./log/DataSection_Section_1-2_2025.06.04_22.58.53.csv');
 raw_signal = readtable([raw_name.folder '\' raw_name.name]);
 raw_signal(:,1:3) = [];
 %% Parameters
@@ -11,7 +11,7 @@ params.fhigh = 60e3; % Tần số cắt cao 60 kHz
 params.N_interp = 1000; % Số mẫu nội suy mong muốn
 params.interp_type = 'spline';% Phương pháp nội suy
 params.filter_order = 5;% Số bậc của bộ lọc thông dải
-params.sub_min_thresh = 10/1e6;%us % Tham số thể hiện độ tin cậy của fat so với kết quả của AIC, số càng lớn thì càng ko tin vào AIC nhiều.
+params.window_length_s = 150/1e6;%us % Window time quanh điểm min của AIC để chọn fat 
 params.fat_time_thresh = 30/1e6;%us % Tham số thể hiện độ mức độ biến đổi fat hệ thống, số càng lớn thì hệ thống ước lượng FAT có quán tính càng lớn, càng ì ạch, không dễ thay đổi.
 %% Algorithm
 [fat_time, rec] = process_fat_detection(raw_signal, params);

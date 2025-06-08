@@ -19,7 +19,7 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
     N_interp       = params.N_interp; 
     interp_type    = params.interp_type; 
     filter_order   = params.filter_order;
-    sub_min_thresh = params.sub_min_thresh;
+    window_length  = params.window_length_s*fs;
     fat_time_thresh = params.fat_time_thresh;
 
     % 1. Trend removal (remove DC)
@@ -49,24 +49,16 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
     % TKEO energy
     energy = core_tkeo(signal_process);
 
-    
-    % Hilber and envelop
-    signal_h = hilbert(signal_process);
-    rec.envelope = abs(signal_h);
-
-    % signal_process = energy';
-
     % 7. Calculate the AIC
     [AIC, minAICIndex] = core_aic(signal_process);
 
-% 
     if (isempty(tkeo_thresh))
         tkeo_thresh = energy(minAICIndex);
     elseif (abs(minAICIndex*1/fs - fat_time_) < fat_time_thresh)
         tkeo_thresh = energy(minAICIndex);
     end
 
-    window_length = 200;
+    % window_length = 200;
     if (minAICIndex > window_length)
         tmp = find(energy(minAICIndex-window_length:minAICIndex+window_length) >= tkeo_thresh, 1, "first");
         if (~isempty(tmp))
@@ -79,15 +71,6 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
     end
     
     % 10. Post process AIC
-    min_locs_AIC = find(islocalmin(AIC)); % Tìm vị trí của các điểm cực trị địa phương
-    rec.sub_idx_max = TKEO_index;
-    [~, sub_idx_min] = min(abs(min_locs_AIC - TKEO_index)); % Hiệu giữa điểm TKEO với các điểm cực trị địa phương
-    idx_local_min = min_locs_AIC(sub_idx_min);
-    if (abs(idx_local_min - minAICIndex) < sub_min_thresh*fs)
-        true_min = idx_local_min;
-    else
-        true_min = minAICIndex;
-    end
 
     true_min = TKEO_index;
 
@@ -99,6 +82,5 @@ function [fat_time, rec] = core_fat_dectection(signal, params, fat_time_)
 
     rec.filtered_signal = filtered_signal;
     rec.AIC = AIC;
-    rec.sub_idx = sub_idx_min;
     rec.tkeo_energy = energy';
 end

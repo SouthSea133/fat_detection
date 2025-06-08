@@ -5,9 +5,6 @@ signal = zeros(size(raw_signal));
 rec.filtered_signal = zeros(data_size);
 rec.AIC = zeros(data_size);
 rec.tkeo_energy = zeros(data_size);
-rec.envelope = zeros(data_size);
-rec.sub_idx = zeros(data_size(1),1);
-rec.max_idx_energy = zeros(data_size(1),1);
 fat_time = zeros(data_size(1),1);
 fat_time_ = 0;
 %% Algorithm
@@ -19,9 +16,6 @@ for i = 1:data_size(1)
     fat_time_ = fat_time(i);
     rec.filtered_signal(i,:) = rec_.filtered_signal;
     rec.AIC(i,:) = rec_.AIC;
-    rec.sub_idx(i,:) = rec_.sub_idx;
     rec.tkeo_energy(i,:) = rec_.tkeo_energy;
-    rec.envelope(i,:) = rec_.envelope;
-    rec.max_idx_energy(i,:) = rec_.sub_idx_max;
 end
 end
